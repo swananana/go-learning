@@ -1,24 +1,27 @@
-package Select
+package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
 
-func Racer(a, b string) (winner string) {
-	durationA := Duration(a)
-	durationB := Duration(b)
-
-	if durationA < durationB {
-		return a
+func Racer(a, b string) (winner string, err error) {
+	select {
+	case <-ping(a):
+		return a, nil
+	case <-ping(b):
+		return b, nil
+	case <-time.After(10 * time.Second):
+		return "", fmt.Errorf("timed out waiting for %s and %s", a, b)
 	}
-
-	return b
-
 }
 
-func Duration(url string) (duration time.Duration) {
-	start := time.Now()
-	_, _ = http.Get(url)
-	return time.Since(start)
+func ping(url string) chan struct{} {
+	ch := make(chan struct{})
+	go func() {
+		http.Get(url)
+		close(ch)
+	}()
+	return ch
 }
